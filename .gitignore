@@ -1,0 +1,38 @@
+# Environment variables — never commit this
+.env
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Pytest cache
+.pytest_cache/
+
+# Distribution / build
+dist/
+build/
+*.egg-info/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs (if you add logging to files later)
+*.log
+logs/
+
+# Database files (if you add SQLite in Phase 4)
+*.db
+*.sqlite3
