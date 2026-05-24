@@ -1,8 +1,8 @@
 """
-LLM Guardrails Gateway — Phase 3
-A FastAPI server that forwards user messages to Groq with both
-input guardrails (PII detection, prompt-injection / jailbreak blocking)
-and output guardrails (toxic-content filtering) applied.
+LLM Guardrails Gateway — Phase 4
+A FastAPI server that forwards user messages to Groq with API-key
+authentication, input guardrails (PII detection, prompt-injection /
+jailbreak blocking), and output guardrails (toxic-content filtering).
 """
 
 import time
@@ -10,7 +10,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from groq import APIConnectionError, APIStatusError
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -19,6 +19,7 @@ from app.models import ChatRequest, ChatResponse, ErrorResponse
 from app.llm_client import LLMClient
 from app.guardrails.output_guard import OutputGuard
 from app.guardrails.input_guard import InputGuard
+from app.auth import verify_api_key
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -35,7 +36,7 @@ logger = logging.getLogger("gateway")
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 LLM Guardrails Gateway starting up (Phase 3 — input + output guardrails)")
+    logger.info("🚀 LLM Guardrails Gateway starting up (Phase 4 — auth + input + output guardrails)")
     app.state.llm_client = LLMClient()
     yield
     logger.info("🛑 Gateway shutting down")
@@ -49,9 +50,9 @@ app = FastAPI(
     description=(
         "Middleware service that sits between a user and an LLM, "
         "enforcing safety and compliance rules. "
-        "Phase 3: input guardrails + PII detection."
+        "Phase 4: API key authentication + input/output guardrails."
     ),
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -97,7 +98,7 @@ async def groq_connection_handler(_: Request, exc: APIConnectionError):
 @app.get("/health", tags=["ops"])
 async def health():
     """Liveness probe."""
-    return {"status": "ok", "phase": 3}
+    return {"status": "ok", "phase": 4}
 
 
 @app.post(
@@ -107,15 +108,20 @@ async def health():
     tags=["gateway"],
     summary="Send a message through the gateway to the LLM",
 )
-async def chat(request: ChatRequest, http_request: Request):
+async def chat(
+    request: ChatRequest,
+    http_request: Request,
+    _: None = Depends(verify_api_key),
+):
     """
-    Gateway endpoint with input + output guardrails.
+    Gateway endpoint with authentication + input + output guardrails.
 
+    0. Phase 4 API-key auth is enforced via the verify_api_key dependency.
     1. Runs Phase 3 input guardrails (PII, injection, jailbreak, toxic, LLM judge).
     2. Forwards the message to Groq if it passes.
     3. Runs Phase 2 output guardrails on the LLM response.
 
-    Phase 4 hook: add rate-limiting, analytics, or policy-engine hooks.
+    Phase 5 hook: add rate-limiting, analytics, or policy-engine hooks.
     """
     client: LLMClient = http_request.app.state.llm_client
 

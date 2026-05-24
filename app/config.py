@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     model: str = "llama-3.3-70b-versatile"   # fast free-tier Groq model
     default_max_tokens: int = 1024
 
+    # Auth (Phase 4)
+    nightwatch_api_key: str
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
